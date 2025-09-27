@@ -1,0 +1,41 @@
+# Ignore data files
+data/
+*.csv
+*.tsv
+*.json
+*.xlsx
+*.parquet
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore virtual environments
+venv/
+.env/
+.venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and outputs
+*.log
+*.out
+*.tmp
+
+# Ignore model files
+*.h5
+*.pkl
+*.joblib
+*.model
+
+# Ignore large archives
+*.zip
+*.tar.gz
+*.rar

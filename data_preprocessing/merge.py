@@ -80,6 +80,7 @@ useractivitymergedfiltered = useractivitymerged.loc[((useractivitymerged['dateti
                                                        (useractivitymerged['Created At Day_of_month']+1)%31))] 
                                                     #Is 31 always right? some months are 30 (check in the future)
 users['activity_days_count'] = users['User_ID'].map(useractivitymergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
+#do we have to count the activity days in the comments and discussions also??
 
 #building the target based on the criteria that each user has done atleast one activity in the next month after account creation
 useractivitymergedfilteredtarget = useractivitymerged.loc[((useractivitymerged['datetime Month'] == 

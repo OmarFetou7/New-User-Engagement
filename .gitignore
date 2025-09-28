@@ -7,7 +7,7 @@ data/
 *.parquet
 
 #Ignore jupyter notebooks
-*.ipynb
+# *.ipynb
 
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/

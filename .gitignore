@@ -6,6 +6,9 @@ data/
 *.xlsx
 *.parquet
 
+#Ignore jupyter notebooks
+*.ipynb
+
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 

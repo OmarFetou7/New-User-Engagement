@@ -1,5 +1,5 @@
 import pandas as pd
-
+import sys
 #The repositery must have a folder named data contaning all the dataframes
 users = pd.read_csv("data/Users.csv")
 useractivity = pd.read_csv("data/UserActivity.csv")
@@ -12,6 +12,7 @@ jobs = pd.read_csv("data/Jobs.csv")
 
 submission_count_keys = compsp['Successful Submission Count'].unique()
 submission_count_keys = submission_count_keys[~pd.isna(submission_count_keys)]
+
 #count number of competitions for each user
 def get_comp_per_user(row):
     account_creation_day = int(row['Created At Day_of_month'])
@@ -24,10 +25,11 @@ def get_comp_per_user(row):
                                            |((compsp['Created At Month'] == nextmonth) 
                                            & (compsp['Created At Day_of_month'] < nextday)))]
     submission_counts = competitions_per_user['Successful Submission Count'].value_counts()
-    submission_counts = [int(submission_counts.get(key,0)) for key in submission_count_keys]
-    return pd.Series([len(competitions_per_user)]+submission_counts)
+    submission_counts_list = [int(submission_counts.get(key,0)) for key in submission_count_keys]
+    return pd.Series([len(competitions_per_user)]+submission_counts_list)
 
-#count number of comments for each user
+#count number of comments for each user 
+###### Why didnt we use the same way as counting comp taking into consideration the days in the next month same for discussion
 def get_comments_per_user(row):
     account_creation_month = row['Created At Month']
     comments_per_user = comments.loc[(row['User_ID'] == comments['User_ID']) & (comments['Created At Month'] == account_creation_month) ]
@@ -48,6 +50,7 @@ def split_time(row):
     return pd.Series([hour,minutes,seconds])
 
 #count number of jobs for each user
+###### do we want to not count a job if its there twice?
 jobs_activity = useractivity[useractivity['Title'].str.startswith('job')]
 unique_jobs = jobs_activity.drop_duplicates(subset=['Title','User_ID'])
 job_count = unique_jobs.groupby('User_ID')['Title'].nunique()
@@ -62,13 +65,14 @@ blog_count = pd.Series(blog_count)
 users['blog_activity_count'] = users['User_ID'].map(blog_count).fillna(0).astype('int')
 
 #apply the functions above
-submission_count_keys = list(map(lambda x : "subm "+ x,submission_count_keys))
-users[['competitons_count'] + submission_count_keys] = users.apply(get_comp_per_user,axis=1)
+submission_count_keys_renamed = list(map(lambda x : "subm "+ x,submission_count_keys))
+users[['competitons_count'] + submission_count_keys_renamed] = users.apply(get_comp_per_user,axis=1)
 users['comments_count'] = users.apply(get_comments_per_user,axis=1)
 users['discussions_count'] = users.apply(get_discussion_per_user,axis=1)
 users[['hour','minute','second']] = users.apply(split_time,axis=1)
 
 #count the number of active days for each user
+###### we need to drop users who signed up on the last month as we dont have targets for them
 useractivitymerged = useractivity.merge(users[['User_ID','Created At Month','Created At Day_of_month']],on='User_ID',how='left')
 useractivitymergedfiltered = useractivitymerged.loc[((useractivitymerged['datetime Month'] == 
                                                       useractivitymerged['Created At Month'])
@@ -83,6 +87,7 @@ users['activity_days_count'] = users['User_ID'].map(useractivitymergedfiltered['
 #do we have to count the activity days in the comments and discussions also??
 
 #building the target based on the criteria that each user has done atleast one activity in the next month after account creation
+###### remove +1 from starting day of new month as the day it created in in the next month is first day of next month and remove +2 from its cap as it should be just less than that exact day 
 useractivitymergedfilteredtarget = useractivitymerged.loc[((useractivitymerged['datetime Month'] == 
                                                             (useractivitymerged['Created At Month']+1)%12)
                                                     & (useractivitymerged['datetime Day_of_month'] >= 

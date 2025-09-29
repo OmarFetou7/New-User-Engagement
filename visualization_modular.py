@@ -95,3 +95,36 @@ def tsne_analysis(df):
     ax.set_zlabel("TSNE3")
     fig.colorbar(scatter, label="target")
     plt.show()
+
+
+def plot_feature_distributions(df, target_col="target"):
+    num_cols = df.drop(columns=[target_col]).select_dtypes("number").columns
+
+    for feature in num_cols:
+        if df[feature].nunique() <= 1:
+            continue
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        # KDEs (distributions)
+        sns.kdeplot(
+            data=df[df[target_col] == 0],
+            x=feature, fill=True, alpha=0.5, label="0", ax=axes[0]
+        )
+        sns.kdeplot(
+            data=df[df[target_col] == 1],
+            x=feature, fill=True, alpha=0.5, label="1", ax=axes[0]
+        )
+        axes[0].set_title(f"Distribution of {feature} by {target_col}")
+        axes[0].legend(title=target_col)
+
+        # Boxplot (x = target, y = feature)
+        sns.boxplot(
+            data=df, x=target_col, y=feature, ax=axes[1]
+        )
+        axes[1].set_title(f"{feature} by {target_col}")
+        axes[1].set_xlabel(target_col)
+        axes[1].set_ylabel(feature)
+
+        plt.tight_layout()
+        plt.show()

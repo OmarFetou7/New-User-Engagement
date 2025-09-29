@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.manifold import TSNE
 import numpy as np
 
+
 def data_overview(df):
     """Show target distribution, missing values, and summary statistics."""
     print("Target value distribution (normalized):")

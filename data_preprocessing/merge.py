@@ -9,29 +9,27 @@ blogs = pd.read_csv("data/Blogs.csv")
 comments = pd.read_csv("data/Comments.csv")
 discussion = pd.read_csv("data/Discussion.csv")
 jobs = pd.read_csv("data/Jobs.csv")
+# original_months = {2:7, 3:8, 4:9, 5:10, 6:11, 7:12, 8:1, 9:2, 10:3, 11:4, 12:5, 1:6}
+# users['Created At Month'] = users['Created At Month'].map(original_months).astype('int')
+# useractivity['datetime Month'] = useractivity['datetime Month'].map(original_months).astype('int')
+# compsp['Created At Month'] = compsp['Created At Month'].map(original_months).astype('int')
+# blogs['Published At Month'] = blogs['Published At Month'].map(original_months).astype('int')
+# comments['Created At Month'] = comments['Created At Month'].map(original_months).astype('int')
+# discussion['Created At Month'] = discussion['Created At Month'].map(original_months).astype('int')
 
-original_months = {2:7, 3:8, 4:9, 5:10, 6:11, 7:12, 8:1, 9:2, 10:3, 11:4, 12:5, 1:6}
-users['Created At Month'] = users['Created At Month'].map(original_months).astype('int')
-useractivity['datetime Month'] = useractivity['datetime Month'].map(original_months).astype('int')
-compsp['Created At Month'] = compsp['Created At Month'].map(original_months).astype('int')
-blogs['Published At Month'] = blogs['Published At Month'].map(original_months).astype('int')
-comments['Created At Month'] = comments['Created At Month'].map(original_months).astype('int')
-discussion['Created At Month'] = discussion['Created At Month'].map(original_months).astype('int')
+# users.loc[(users['Created At Month'] >= 1) & (users['Created At Month'] <= 5),'Created At Year'] = 2
+# useractivity.loc[(useractivity['datetime Month'] >= 1) & (useractivity['datetime Month'] <= 5),'datetime Year'] = 2
+# compsp.loc[(compsp['Created At Month'] >= 1) & (compsp['Created At Month'] <= 5),'Created At Year'] = 2
+# blogs.loc[(blogs['Published At Month'] >= 1) & (blogs['Published At Month'] <= 5),'Published At Year'] = 2
+# comments.loc[(comments['Created At Month'] >= 1) & (comments['Created At Month'] <= 5),'Created At Year'] = 2
+# discussion.loc[(discussion['Created At Month'] >= 1) & (discussion['Created At Month'] <= 5),'Created At Year'] = 2
 
-users.loc[(users['Created At Month'] >= 1) & (users['Created At Month'] <= 6),'Created At Year'] = 2
-useractivity.loc[(useractivity['datetime Month'] >= 1) & (useractivity['datetime Month'] <= 6),'datetime Year'] = 2
-compsp.loc[(compsp['Created At Month'] >= 1) & (compsp['Created At Month'] <= 6),'Created At Year'] = 2
-blogs.loc[(blogs['Published At Month'] >= 1) & (blogs['Published At Month'] <= 6),'Published At Year'] = 2
-comments.loc[(comments['Created At Month'] >= 1) & (comments['Created At Month'] <= 6),'Created At Year'] = 2
-discussion.loc[(discussion['Created At Month'] >= 1) & (discussion['Created At Month'] <= 6),'Created At Year'] = 2
-
-users['creation_date'] = users.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
-useractivity['activity_date'] = useractivity.apply(lambda x : pd.Timestamp(year=x['datetime Year'],month=x['datetime Month'],day=x['datetime Day_of_month']),axis=1)
-compsp['participation_date'] = compsp.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
-blogs['Publish_date'] = blogs.apply(lambda x : pd.Timestamp(year=x['Published At Year'],month=x['Published At Month'],day=x['Published At Day_of_month']),axis=1)
-comments['comment_date'] = comments.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
-discussion['discussion_date'] = discussion.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
-
+# users['creation_date'] = users.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+# useractivity['activity_date'] = useractivity.apply(lambda x : pd.Timestamp(year=x['datetime Year'],month=x['datetime Month'],day=x['datetime Day_of_month']),axis=1)
+# compsp['participation_date'] = compsp.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+# blogs['Publish_date'] = blogs.apply(lambda x : pd.Timestamp(year=x['Published At Year'],month=x['Published At Month'],day=x['Published At Day_of_month']),axis=1)
+# comments['comment_date'] = comments.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+# discussion['discussion_date'] = discussion.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
 
 submission_count_keys = compsp['Successful Submission Count'].unique()
 submission_count_keys = submission_count_keys[~pd.isna(submission_count_keys)]
@@ -72,18 +70,48 @@ def split_time(row):
 
 #count number of jobs for each user
 ###### do we want to not count a job if its there twice?
-jobs_activity = useractivity[useractivity['Title'].str.startswith('job')]
-unique_jobs = jobs_activity.drop_duplicates(subset=['Title','User_ID'])
-job_count = unique_jobs.groupby('User_ID')['Title'].nunique()
+useractivitymerged = useractivity.merge(users[['User_ID','creation_date']],on='User_ID',how='left')
+timemask = (useractivitymerged["activity_date"] >= useractivitymerged["creation_date"]) & (useractivitymerged["activity_date"] < useractivitymerged["creation_date"] + pd.DateOffset(months=1))
+
+jobs_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('job') & (timemask)]
+#unique_jobs = jobs_activity.drop_duplicates(subset=['Title','User_ID'])
+job_count = jobs_activity.groupby('User_ID')['Title'].nunique()
 job_count = pd.Series(job_count)
-users['job_count'] = users['User_ID'].map(job_count).fillna(0).astype('int')
+users['job_activity_count'] = users['User_ID'].map(job_count).fillna(0).astype('int')
+
+#count number of compID for each user
+comps_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('comp') & (timemask)]
+#unique_comps = comps_activity.drop_duplicates(subset=['Title','User_ID'])
+comp_count = comps_activity.groupby('User_ID')['Title'].nunique()
+comp_count = pd.Series(comp_count)
+users['comp_activity_count'] = users['User_ID'].map(comp_count).fillna(0).astype('int')
 
 #count number of blogs for each user
-blogs_activity = useractivity[useractivity['Title'].str.startswith('job')]
-unique_blogs = blogs_activity.drop_duplicates(subset=['Title','User_ID'])
-blog_count = unique_blogs.groupby('User_ID')['Title'].nunique()
+blogs_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('blog') & (timemask)]
+#unique_blogs = blogs_activity.drop_duplicates(subset=['Title','User_ID'])
+blog_count = blogs_activity.groupby('User_ID')['Title'].nunique()
 blog_count = pd.Series(blog_count)
 users['blog_activity_count'] = users['User_ID'].map(blog_count).fillna(0).astype('int')
+
+#count number of badges for each user
+badges_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('badge') & (timemask)]
+badge_count = badges_activity.groupby('User_ID')['Title'].nunique()
+badge_count = pd.Series(badge_count)
+users['badge_activity_count'] = users['User_ID'].map(badge_count).fillna(0).astype('int')
+
+#count rest of activities for each user
+mask_activities = (~(useractivitymerged['Title'].str.startswith('job'))) \
+        & (~(useractivitymerged['Title'].str.startswith('comp')))\
+        & (~(useractivitymerged['Title'].str.startswith('blog')))\
+        & (~(useractivitymerged['Title'].str.startswith('Signed Up')))\
+        & (~(useractivitymerged['Title'].str.startswith('$create_alias')))\
+        & (~(useractivitymerged['Title'].str.startswith('$identify')))\
+        & (~(useractivitymerged['Title'].str.startswith('badge')))
+keys = (useractivitymerged['Title'][mask_activities]).unique()
+rest_activities = useractivitymerged[useractivitymerged["Title"].isin(keys) & (timemask)]
+counts = rest_activities.groupby(["User_ID", "Title"]).size().unstack(fill_value=0)
+users = users.merge(counts, on="User_ID", how="left")
+users[keys] = users[keys].fillna(0)
 
 #apply the functions above
 submission_count_keys_renamed = list(map(lambda x : "subm "+ x,submission_count_keys))
@@ -94,28 +122,28 @@ users[['hour','minute','second']] = users.apply(split_time,axis=1)
 
 #count the number of active days for each user
 ###### we need to drop users who signed up on the last month as we dont have targets for them
-useractivitymerged = useractivity.merge(users[['User_ID','creation_date']],on='User_ID',how='left')
 discussionmerged = discussion.merge(users[['User_ID','creation_date']],on='User_ID',how='left')
 commentsmerged = comments.merge(users[['User_ID','creation_date']],on='User_ID',how='left')
 
-useractivitymergedfiltered = useractivitymerged.loc[(useractivitymerged['activity_date'] >= useractivitymerged['creation_date'])
-                                                    & (useractivitymerged['activity_date'] < useractivitymerged['creation_date'] + pd.DateOffset(months=1))] 
-activity_days = users['User_ID'].map(useractivitymergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
+#useractivitymergedfiltered = useractivitymerged.loc[(useractivitymerged['activity_date'] >= useractivitymerged['creation_date'])
+                                                    #& (useractivitymerged['activity_date'] < useractivitymerged['creation_date'] + pd.DateOffset(months=1))] 
+#activity_days = users['User_ID'].map(useractivitymergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
 
-discussionmergedfiltered = discussionmerged.loc[(discussionmerged['discussion_date'] >= discussionmerged['creation_date'])
-                                                    & (discussionmerged['discussion_date'] < discussionmerged['creation_date'] + pd.DateOffset(months=1))] 
-discussion_days = users['User_ID'].map(discussionmergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
+#discussionmergedfiltered = discussionmerged.loc[(discussionmerged['discussion_date'] >= discussionmerged['creation_date'])
+                                                    #& (discussionmerged['discussion_date'] < discussionmerged['creation_date'] + pd.DateOffset(months=1))] 
+#discussion_days = users['User_ID'].map(discussionmergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
 
-commentsmergedfiltered = commentsmerged.loc[(commentsmerged['comment_date'] >= commentsmerged['creation_date'])
-                                                    & (commentsmerged['comment_date'] < commentsmerged['creation_date'] + pd.DateOffset(months=1))] 
-comments_days = users['User_ID'].map(commentsmergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
+#commentsmergedfiltered = commentsmerged.loc[(commentsmerged['comment_date'] >= commentsmerged['creation_date'])
+                                                    #& (commentsmerged['comment_date'] < commentsmerged['creation_date'] + pd.DateOffset(months=1))] 
+#comments_days = users['User_ID'].map(commentsmergedfiltered['User_ID'].value_counts()).fillna(0).astype('int')
 
-all_activity_days = activity_days + discussion_days + comments_days
-users['activity_count'] = all_activity_days
+#all_activity_days = activity_days + discussion_days + comments_days
+#users['activity_count'] = all_activity_days
 
 #do we have to count the activity days in the comments and discussions also??
 #building the target based on the criteria that each user has done atleast one activity in the next month after account creation
 ###### remove +1 from starting day of new month as the day it created in in the next month is first day of next month and remove +2 from its cap as it should be just less than that exact day 
+
 useractivitymergedfilteredtarget = useractivitymerged.loc[(useractivitymerged['activity_date'] >= useractivitymerged['creation_date'] + pd.DateOffset(months=1))
                                                     & (useractivitymerged['activity_date'] < useractivitymerged['creation_date'] + pd.DateOffset(months=2))]
 useractivitymergedfilteredtarget = users['User_ID'].map(useractivitymergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
@@ -132,6 +160,3 @@ target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (us
 users['target'] = target
 
 users.to_csv('data/data.csv',index=False)
-
-
-

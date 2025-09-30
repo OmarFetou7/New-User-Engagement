@@ -6,6 +6,7 @@ from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV,train_test_split,KFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
 import numpy as np
 import pandas as pd
 import random
@@ -78,7 +79,7 @@ models = {
             'model__max_depth': [4, 6, 8, 10],
             'model__n_estimators': [300, 600, 1000],
             'model__learning_rate': [0.02, 0.05, 0.1],
-            'model__auto_class_weights': [None, 'Balanced', 'SqrtBalanced'],  # <-- corrected name & values
+            'model__auto_class_weights': [None, 'Balanced', 'SqrtBalanced'],  
         }
     },
 }
@@ -87,6 +88,7 @@ models = {
 def load_dataset(test_size):
     df = pd.read_csv('data/data.csv')
     df = df.drop(columns=['User_ID','Countries_ID','Created At time','creation_date'])
+    df = df.drop(index=df.loc[df['Created At Year'] == 6].index)
     X = df.drop(columns=["target"])
     y = df["target"]
 
@@ -112,4 +114,14 @@ def train(model,X_train,Y_train,cv_splits):
     grid_search.fit(X_train,Y_train)
 
     return grid_search
+
+def eval(grid_search: GridSearchCV, X_test: pd.DataFrame, y_test: pd.DataFrame):
+    best = grid_search.best_estimator_
+    y_pred = best.predict(X_test)
+    scores = classification_report(y_test,y_pred,labels=['active','not_active'],digits=3,output_dict=True)
+    return {
+        "estimator": best["model"],
+        "preds": y_pred,
+        'report': scores
+    }
 

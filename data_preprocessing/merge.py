@@ -18,12 +18,20 @@ blogs['Published At Month'] = blogs['Published At Month'].map(original_months).a
 comments['Created At Month'] = comments['Created At Month'].map(original_months).astype('int')
 discussion['Created At Month'] = discussion['Created At Month'].map(original_months).astype('int')
 
-users['creation_date'] = users.apply(lambda x : pd.Timestamp(f"{x['Created At Month']}-{x['Created At Day_of_month']}"),axis=1)
-useractivity['activity_date'] = useractivity.apply(lambda x : pd.Timestamp(f"{x['datetime Month']}-{x['datetime Day_of_month']}"),axis=1)
-compsp['participation_date'] = compsp.apply(lambda x : pd.Timestamp(f"{x['Created At Month']}-{x['Created At Day_of_month']}"),axis=1)
-blogs['Publish_date'] = blogs.apply(lambda x : pd.Timestamp(f"{x['Published At Month']}-{x['Published At Day_of_month']}"),axis=1)
-comments['comment_date'] = comments.apply(lambda x : pd.Timestamp(f"{x['Created At Month']}-{x['Created At Day_of_month']}"),axis=1)
-discussion['discussion_date'] = discussion.apply(lambda x : pd.Timestamp(f"{x['Created At Month']}-{x['Created At Day_of_month']}"),axis=1)
+users.loc[(users['Created At Month'] >= 1) & (users['Created At Month'] <= 6),'Created At Year'] = 2
+useractivity.loc[(useractivity['datetime Month'] >= 1) & (useractivity['datetime Month'] <= 6),'datetime Year'] = 2
+compsp.loc[(compsp['Created At Month'] >= 1) & (compsp['Created At Month'] <= 6),'Created At Year'] = 2
+blogs.loc[(blogs['Published At Month'] >= 1) & (blogs['Published At Month'] <= 6),'Published At Year'] = 2
+comments.loc[(comments['Created At Month'] >= 1) & (comments['Created At Month'] <= 6),'Created At Year'] = 2
+discussion.loc[(discussion['Created At Month'] >= 1) & (discussion['Created At Month'] <= 6),'Created At Year'] = 2
+
+users['creation_date'] = users.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+useractivity['activity_date'] = useractivity.apply(lambda x : pd.Timestamp(year=x['datetime Year'],month=x['datetime Month'],day=x['datetime Day_of_month']),axis=1)
+compsp['participation_date'] = compsp.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+blogs['Publish_date'] = blogs.apply(lambda x : pd.Timestamp(year=x['Published At Year'],month=x['Published At Month'],day=x['Published At Day_of_month']),axis=1)
+comments['comment_date'] = comments.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+discussion['discussion_date'] = discussion.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Created At Month'],day=x['Created At Day_of_month']),axis=1)
+
 
 submission_count_keys = compsp['Successful Submission Count'].unique()
 submission_count_keys = submission_count_keys[~pd.isna(submission_count_keys)]
@@ -105,7 +113,25 @@ comments_days = users['User_ID'].map(commentsmergedfiltered['User_ID'].value_cou
 all_activity_days = activity_days + discussion_days + comments_days
 users['activity_count'] = all_activity_days
 
-#do we h  
+#do we have to count the activity days in the comments and discussions also??
+#building the target based on the criteria that each user has done atleast one activity in the next month after account creation
+###### remove +1 from starting day of new month as the day it created in in the next month is first day of next month and remove +2 from its cap as it should be just less than that exact day 
+useractivitymergedfilteredtarget = useractivitymerged.loc[(useractivitymerged['activity_date'] >= useractivitymerged['creation_date'] + pd.DateOffset(months=1))
+                                                    & (useractivitymerged['activity_date'] < useractivitymerged['creation_date'] + pd.DateOffset(months=2))]
+useractivitymergedfilteredtarget = users['User_ID'].map(useractivitymergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
+
+discussionmergedfilteredtarget = discussionmerged.loc[(discussionmerged['discussion_date'] >= discussionmerged['creation_date'] + pd.DateOffset(months=1))
+                                                    & (discussionmerged['discussion_date'] < discussionmerged['creation_date'] + pd.DateOffset(months=2))]
+discussionmergedfilteredtarget = users['User_ID'].map(discussionmergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
+
+commentsmergedfilteredtarget = commentsmerged.loc[(commentsmerged['comment_date'] >= commentsmerged['creation_date'] + pd.DateOffset(months=1))
+                                                    & (commentsmerged['comment_date'] < commentsmerged['creation_date'] + pd.DateOffset(months=2))]
+commentsmergedfilteredtarget = users['User_ID'].map(commentsmergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
+
+target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (useractivitymergedfilteredtarget)
+users['target'] = target
+
+users.to_csv('data/data.csv',index=False)
 
 
 

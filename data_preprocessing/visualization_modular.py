@@ -66,14 +66,14 @@ def pca_analysis(df):
         print("Explained variance ratio:", pca.explained_variance_ratio_)
         print("Cumulative variance explained:", np.sum(pca.explained_variance_ratio_))
 
-def tsne_analysis(df):
+def tsne_analysis(df, perplexity=30):
     """Perform t-SNE and plot 2D and 3D embeddings."""
     X = df.drop(columns="target").select_dtypes("number")
     y = df["target"]
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    X_embedded = TSNE(n_components=2, random_state=42).fit_transform(X_scaled)
-    X_embedded_3d = TSNE(n_components=3, random_state=42).fit_transform(X_scaled)
+    X_embedded = TSNE(n_components=2, random_state=42, perplexity=perplexity ).fit_transform(X_scaled)
+    X_embedded_3d = TSNE(n_components=3, random_state=42, perplexity= perplexity).fit_transform(X_scaled)
     tsne2d_df = pd.DataFrame(X_embedded, columns=["TSNE1", "TSNE2"])
     tsne2d_df["target"] = y.values
     tsne3d_df = pd.DataFrame(X_embedded_3d, columns=["TSNE1", "TSNE2", "TSNE3"])
@@ -82,7 +82,6 @@ def tsne_analysis(df):
     sns.scatterplot(data=tsne2d_df, x="TSNE1", y="TSNE2", hue="target", alpha=0.7, palette="coolwarm")
     plt.title("t-SNE 2D embedding")
     plt.show()
-    from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure(figsize=(10,7))
     ax = fig.add_subplot(111, projection="3d")
     scatter = ax.scatter(

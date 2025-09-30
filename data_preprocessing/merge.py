@@ -105,25 +105,7 @@ comments_days = users['User_ID'].map(commentsmergedfiltered['User_ID'].value_cou
 all_activity_days = activity_days + discussion_days + comments_days
 users['activity_count'] = all_activity_days
 
-#do we have to count the activity days in the comments and discussions also??
-#building the target based on the criteria that each user has done atleast one activity in the next month after account creation
-###### remove +1 from starting day of new month as the day it created in in the next month is first day of next month and remove +2 from its cap as it should be just less than that exact day 
-useractivitymergedfilteredtarget = useractivitymerged.loc[(useractivitymerged['activity_date'] >= useractivitymerged['creation_date'] + pd.DateOffset(months=1))
-                                                    & (useractivitymerged['activity_date'] < useractivitymerged['creation_date'] + pd.DateOffset(months=2))]
-useractivitymergedfilteredtarget = users['User_ID'].map(useractivitymergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
-
-discussionmergedfilteredtarget = discussionmerged.loc[(discussionmerged['discussion_date'] >= discussionmerged['creation_date'] + pd.DateOffset(months=1))
-                                                    & (discussionmerged['discussion_date'] < discussionmerged['creation_date'] + pd.DateOffset(months=2))]
-discussionmergedfilteredtarget = users['User_ID'].map(discussionmergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
-
-commentsmergedfilteredtarget = commentsmerged.loc[(commentsmerged['comment_date'] >= commentsmerged['creation_date'] + pd.DateOffset(months=1))
-                                                    & (commentsmerged['comment_date'] < commentsmerged['creation_date'] + pd.DateOffset(months=2))]
-commentsmergedfilteredtarget = users['User_ID'].map(commentsmergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
-
-target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (useractivitymergedfilteredtarget)
-users['target'] = target
-
-users.to_csv('data/data.csv',index=False)
+#do we h  
 
 
 

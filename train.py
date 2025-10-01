@@ -71,15 +71,14 @@ models = {
     },
 
     'CAT': {
-        'pipe': Pipeline(base_pipeline + [('model', CatBoostClassifier(objective='Logloss',
-                                                                       eval_metric='Logloss',
+        'pipe': Pipeline(base_pipeline + [('model', CatBoostClassifier(
                                                                        random_state=SEED,
                                                                        verbose=False))]),
         'params_grid': {
-            'model__max_depth': [4, 6, 8, 10],
-            'model__n_estimators': [300, 600, 1000],
-            'model__learning_rate': [0.02, 0.05, 0.1],
-            'model__auto_class_weights': [None, 'Balanced', 'SqrtBalanced'],  
+            #'model__max_depth': [4, 6, 8, 10],
+            'model__n_estimators': [1000],
+            'model__learning_rate': [0.01124],
+            'model__auto_class_weights': ['Balanced'],  
         }
     },
 }

@@ -1,8 +1,9 @@
-from sklearn.ensemble import RandomForestClassifier,GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 import lightgbm as lgb
 from catboost import CatBoostClassifier
+from imblearn.ensemble import BalancedRandomForestClassifier
 from sklearn.model_selection import GridSearchCV,train_test_split,StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -25,22 +26,27 @@ models = {
     },
 
     'RandomForest': {
-        'pipe': Pipeline(base_pipeline + [('model', RandomForestClassifier(random_state=SEED, n_jobs=8))]),
+        'pipe': Pipeline(base_pipeline + [('model', RandomForestClassifier(random_state=SEED, n_jobs=4))]),
         'params_grid': {
-            'model__n_estimators': [200, 400, 800],
-            'model__max_depth': [None, 10, 16, 24],
-            'model__class_weight': [None, 'balanced'],
+            'model__n_estimators': [100, 200, 300],
+            'model__max_depth': [3, 5, 8, 10],
+            'model__min_samples_split': [2, 5, 10],
+            'model__min_samples_leaf': [1, 2, 4],
+            'model__max_features': ['sqrt', 'log2', 0.5],
+            'model__class_weight': [None, 'balanced']
         }
     },
 
-    'GradientBoosting': {
-        'pipe': Pipeline(base_pipeline + [('model', GradientBoostingClassifier(random_state=SEED))]),
+    'BalancedRandomForest': {
+        'pipe': Pipeline(base_pipeline + [('model', BalancedRandomForestClassifier(random_state=SEED, n_jobs=4))]),
         'params_grid': {
-            # GB tends to like shallow trees + modest lr for 10k rows
-            'model__learning_rate': [0.02, 0.05, 0.1],
-            'model__n_estimators': [200, 400, 800],
-            'model__max_depth': [2, 3, 4, 5],
-            'model__class_weight': [None, 'balanced'],  # NOTE: sklearn GB does NOT support class_weight; remove if error.
+            'model__n_estimators': [100, 200, 300],
+            'model__max_depth': [3, 5, 8, 10],
+            'model__min_samples_split': [2, 5, 10],
+            'model__min_samples_leaf': [1, 2, 4],
+            'model__max_features': ['sqrt', 'log2', 0.5],
+            'model__class_weight': [None, 'balanced']
+        
         }
     },
 
@@ -49,24 +55,15 @@ models = {
                                                                   eval_metric='logloss',
                                                                   random_state=SEED,
                                                                   scale_pos_weight = 5.8,
-                                                                  n_jobs=8))]),
+                                                                  n_jobs=4))]),
         'params_grid': {
-            'model__learning_rate': [0.02, 0.05, 0.1],
-            'model__n_estimators': [300, 600, 900],
-            'model__max_depth': [3, 5, 7],
-        }
-    },
-
-    'LGB': {
-        'pipe': Pipeline(base_pipeline + [('model', lgb.LGBMClassifier(objective='binary',
-                                                                       metric='binary_logloss',
-                                                                       random_state=SEED,
-                                                                       n_jobs=8))]),
-        'params_grid': {
-            'model__learning_rate': [0.02, 0.05, 0.1],
-            'model__n_estimators': [300, 600, 1000],
-            'model__max_depth': [-1, 5, 8, 12],
-            'model__is_unbalance': [True, False],
+            'model__learning_rate': [0.05, 0.1],
+            'model__n_estimators': [100, 200],
+            'model__max_depth': [3, 5],
+            'model__subsample': [0.8, 1],
+            'model__colsample_bytree': [0.8, 1],
+            'model__reg_alpha': [0, 0.1],
+            'model__reg_lambda': [1, 1.5]
         }
     },
 
@@ -75,10 +72,10 @@ models = {
                                                                        random_state=SEED,
                                                                        verbose=False))]),
         'params_grid': {
-            #'model__max_depth': [4, 6, 8, 10],
-            'model__n_estimators': [1000],
-            'model__learning_rate': [0.01124],
-            'model__auto_class_weights': ['Balanced'],  
+            'model__max_depth': [4, 6, 8, 10],
+            'model__n_estimators': [300, 600, 1000],
+            'model__learning_rate': [0.02, 0.05, 0.1],
+            'model__auto_class_weights': [None, 'Balanced', 'SqrtBalanced'],  
         }
     },
 }
@@ -100,7 +97,7 @@ models = {
 #     'RandomForest': {
 #         'pipe': Pipeline(base_pipeline + [('model', RandomForestClassifier(random_state=SEED, n_jobs=8))]),
 #         'params_grid': {
-#             'model__n_estimators': [200, 500, 1000],         # Number of trees
+#             'model__n_estimators': [200, 300,400,500],         # Number of trees
 #             'model__max_depth': [None, 10, 20, 30],         # Max depth of trees
 #             'model__min_samples_split': [2, 5, 10],         # Minimum samples to split a node
 #             'model__min_samples_leaf': [1, 2, 4],           # Minimum samples at a leaf node
@@ -109,14 +106,15 @@ models = {
 #         }
 #     },
 
-#     'GradientBoosting': {
-#         'pipe': Pipeline(base_pipeline + [('model', GradientBoostingClassifier(random_state=SEED))]),
+#     'BalancedRandomForest': {
+#         'pipe': Pipeline(base_pipeline + [('model', BalancedRandomForestClassifier(random_state=SEED, n_jobs=8))]),
 #         'params_grid': {
-#             # GB tends to like shallow trees + modest lr for 10k rows
-#             'model__learning_rate': [0.02, 0.05, 0.1],
-#             'model__n_estimators': [200, 400, 800],
-#             'model__max_depth': [2, 3, 4, 5],
-#             'model__class_weight': [None, 'balanced'],  # NOTE: sklearn GB does NOT support class_weight; remove if error.
+#             'model__n_estimators': [200, 300,400,500],         # Number of trees
+#             'model__max_depth': [None, 10, 20, 30],         # Max depth of trees
+#             'model__min_samples_split': [2, 5, 10],         # Minimum samples to split a node
+#             'model__min_samples_leaf': [1, 2, 4],           # Minimum samples at a leaf node
+#             'model__max_features': ['sqrt', 'log2', 0.5],   # Number of features to consider at each split
+#             'model__class_weight': ['balanced', 'balanced_subsample']  # Handle imbalance
 #         }
 #     },
 
@@ -168,7 +166,7 @@ models = {
 
 def load_dataset(test_size):
     df = pd.read_csv('data/datatrain.csv')
-    df = df.drop(columns=['User_ID','Created At Year','Created At time'])
+    df = df.drop(columns=['User_ID','Created At Year','Created At time',"Created At Month","Countries_ID"])
     X = df.drop(columns=["target"])
     y = df["target"]
 
@@ -192,8 +190,9 @@ def train(model,X_train,Y_train,cv_splits):
         param_grid,
         cv=cv,
         scoring="neg_log_loss",
-        n_jobs=8,
+        n_jobs=4,
         refit=True,
+        return_train_score=True
     )
 
     grid_search.fit(X_train,Y_train)
@@ -203,10 +202,43 @@ def train(model,X_train,Y_train,cv_splits):
 def eval(grid_search: GridSearchCV, X_test: pd.DataFrame, y_test: pd.DataFrame):
     best = grid_search.best_estimator_
     y_pred = best.predict(X_test)
-    scores = classification_report(y_test,y_pred,labels=[0,1],digits=3,output_dict=True)
+    #scores = classification_report(y_test,y_pred,labels=[0,1],digits=3,output_dict=True)
+    print(classification_report(y_test,y_pred,labels=[0,1],digits=3,output_dict=False))
     return {
         "estimator": best["model"],
         "preds": y_pred,
-        'report': scores
+        #'report': scores
+    }
+
+def train_probs(model,X_train,Y_train,cv_splits):
+    pipeline = models[model]["pipe"]
+    if model == "XGB":
+        pos = (Y_train == 1).sum()
+        neg = (Y_train == 0).sum()
+        scale_pos = neg/pos
+        pipeline['model'].scale_pos_weight = scale_pos
+    param_grid = models[model]["params_grid"]
+    cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=SEED) 
+    grid_search = GridSearchCV(
+        pipeline,
+        param_grid,
+        cv=cv,
+        scoring="neg_log_loss",
+        n_jobs=8,
+    )
+    best_params = grid_search.best_params_
+    grid_search.fit(X_train,Y_train)
+
+    return grid_search
+
+def eval_probs(grid_search: GridSearchCV, X_test: pd.DataFrame, y_test: pd.DataFrame):
+    best = grid_search.best_estimator_
+    y_pred = best.predict(X_test)
+    #scores = classification_report(y_test,y_pred,labels=[0,1],digits=3,output_dict=True)
+    print(classification_report(y_test,y_pred,labels=[0,1],digits=3,output_dict=False))
+    return {
+        "estimator": best["model"],
+        "preds": y_pred,
+        #'report': scores
     }
 

@@ -12,7 +12,14 @@ discussion = pd.read_csv("data/Discussion.csv")
 jobs = pd.read_csv("data/Jobs.csv")
 sample = pd.read_csv("data/SampleSubmission.csv")
 
-print(useractivity.groupby('Title')['User_ID'].nunique()['Signed Up'])
+original_months = {2:7, 3:8, 4:9, 5:10, 6:11, 7:12, 8:1, 9:2, 10:3, 11:4, 12:5, 1:6}
+users['Original Month'] = users['Created At Month'].map(original_months).astype('int')
+users['creation_date'] = users.apply(lambda x : pd.Timestamp(year=x['Created At Year'],month=x['Original Month'],day=x['Created At Day_of_month']),axis=1)
+users['days_left_in_month'] = users.apply(lambda x : ((x['creation_date'] + pd.offsets.MonthEnd(0)) - x['creation_date']).days,axis=1)
+useractivity['Original Month'] = useractivity['datetime Month'].map(original_months).astype('int')
+useractivity['activity_date'] = useractivity.apply(lambda x : pd.Timestamp(year=2020,month=x['Original Month'],day=x['datetime Day_of_month']) + pd.to_timedelta(x['datetime time']),axis=1)
+
+
 submission_count_keys = compsp['Successful Submission Count'].unique()
 submission_count_keys = submission_count_keys[~pd.isna(submission_count_keys)]
 #count number of competitions for each user
@@ -38,18 +45,21 @@ def get_discussion_per_user(row):
                                        & (discussion['Created At Month'] >= account_creation_date)]
     return len(discussions_per_user)
 
-#split the time to hour, minute, and second
-def split_time(row):
-    time = pd.Timestamp(row['Created At time'])
-    hour = int(time.hour)
-    minutes = int(time.minute)
-    seconds = int(time.second)
-    return pd.Series([hour,minutes,seconds])
 
-#count number of jobs for each user
 useractivitymerged = useractivity.merge(users[['User_ID','Created At Month']],on='User_ID',how='left')
 timemask = (useractivitymerged["datetime Month"] == useractivitymerged["Created At Month"])
 
+#count number of times a user visited the website and std
+std = useractivitymerged[timemask].groupby("User_ID")['activity_date'].std().dt.days
+count = useractivitymerged[timemask].groupby("User_ID")['Title'].count()
+count_days = useractivitymerged[timemask].groupby("User_ID")['datetime Day_of_month'].nunique()
+count_days_std = useractivitymerged[timemask].groupby("User_ID")['datetime Day_of_month'].unique().apply(lambda x: x.std())
+# users['visit_std_days'] = users['User_ID'].map(count_days_std).fillna(0).astype('float')
+# users['visit_count_days'] = users['User_ID'].map(count_days).fillna(0).astype('int')
+users['visit_std'] = users['User_ID'].map(std).fillna(0).astype('float')
+users['visit_count'] = users['User_ID'].map(count).fillna(0).astype('int')
+
+#count number of jobs for each user
 jobs_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('job') & (timemask)]
 job_count = jobs_activity.groupby('User_ID')['Title'].count()
 job_count = pd.Series(job_count)
@@ -68,10 +78,14 @@ blog_count = pd.Series(blog_count)
 users['blog_activity_count'] = users['User_ID'].map(blog_count).fillna(0).astype('int')
 
 #count number of badges for each user
-badges_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('badge') & (timemask)]
-badge_count = badges_activity.groupby('User_ID')['Title'].count()
-badge_count = pd.Series(badge_count)
-users['badge_activity_count'] = users['User_ID'].map(badge_count).fillna(0).astype('int')
+badge_df = useractivitymerged[useractivitymerged['Title'].str.startswith('badge')]
+badge_count = badge_df.pivot_table(
+    index='User_ID',
+    columns='Title',
+    aggfunc='size',
+    fill_value=0
+    ).reset_index()
+users = users.merge(badge_count, on='User_ID', how='left')
 
 #label encoding for countries
 users['Countries_ID'] = users['Countries_ID'].fillna("unspecified")
@@ -98,10 +112,10 @@ submission_count_keys_renamed = list(map(lambda x : "subm "+ x,submission_count_
 users[['competitons_count'] + submission_count_keys_renamed] = users.apply(get_comp_per_user,axis=1)
 users['comments_count'] = users.apply(get_comments_per_user,axis=1)
 users['discussions_count'] = users.apply(get_discussion_per_user,axis=1)
-users[['hour','minute','second']] = users.apply(split_time,axis=1)
 
 #extract the test ids
 test_ids = sample.User_ID_Next_month_Activity.str.replace("_Month_5","")
+users = users.drop(columns=['creation_date','Original Month'])
 users_train = users.loc[~(users.User_ID.isin(test_ids))]
 users_test = users.loc[(users.User_ID.isin(test_ids))]
 users_train = users_train.drop(index=users_train.loc[users_train['Created At Month'] == 5].index)
@@ -117,7 +131,7 @@ discussionmergedfilteredtarget = users_train['User_ID'].map(discussionmergedfilt
 commentsmergedfilteredtarget = commentsmerged.loc[(commentsmerged['Created At Month_x'] == (commentsmerged['Created At Month_y']+1)%12)]
 commentsmergedfilteredtarget = users_train['User_ID'].map(commentsmergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
 
-# target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (useractivitymergedfilteredtarget)
+target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (useractivitymergedfilteredtarget)
 target2 = (useractivitymergedfilteredtarget)
 # print(target.value_counts())
 # print(target2.value_counts())

@@ -12,6 +12,7 @@ discussion = pd.read_csv("data/Discussion.csv")
 jobs = pd.read_csv("data/Jobs.csv")
 sample = pd.read_csv("data/SampleSubmission.csv")
 
+print(useractivity.groupby('Title')['User_ID'].nunique()['Signed Up'])
 submission_count_keys = compsp['Successful Submission Count'].unique()
 submission_count_keys = submission_count_keys[~pd.isna(submission_count_keys)]
 #count number of competitions for each user
@@ -50,25 +51,25 @@ useractivitymerged = useractivity.merge(users[['User_ID','Created At Month']],on
 timemask = (useractivitymerged["datetime Month"] == useractivitymerged["Created At Month"])
 
 jobs_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('job') & (timemask)]
-job_count = jobs_activity.groupby('User_ID')['Title'].nunique()
+job_count = jobs_activity.groupby('User_ID')['Title'].count()
 job_count = pd.Series(job_count)
 users['job_activity_count'] = users['User_ID'].map(job_count).fillna(0).astype('int')
 
 #count number of compID for each user
 comps_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('comp') & (timemask)]
-comp_count = comps_activity.groupby('User_ID')['Title'].nunique()
+comp_count = comps_activity.groupby('User_ID')['Title'].count()
 comp_count = pd.Series(comp_count)
 users['comp_activity_count'] = users['User_ID'].map(comp_count).fillna(0).astype('int')
 
 #count number of blogs for each user
 blogs_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('blog') & (timemask)]
-blog_count = blogs_activity.groupby('User_ID')['Title'].nunique()
+blog_count = blogs_activity.groupby('User_ID')['Title'].count()
 blog_count = pd.Series(blog_count)
 users['blog_activity_count'] = users['User_ID'].map(blog_count).fillna(0).astype('int')
 
 #count number of badges for each user
 badges_activity = useractivitymerged[useractivitymerged['Title'].str.startswith('badge') & (timemask)]
-badge_count = badges_activity.groupby('User_ID')['Title'].nunique()
+badge_count = badges_activity.groupby('User_ID')['Title'].count()
 badge_count = pd.Series(badge_count)
 users['badge_activity_count'] = users['User_ID'].map(badge_count).fillna(0).astype('int')
 
@@ -82,9 +83,9 @@ mask_activities =  (~(useractivitymerged['Title'].str.startswith('job')))\
                     & (~(useractivitymerged['Title'].str.startswith('comp')))\
                     & (~(useractivitymerged['Title'].str.startswith('blog')))\
                     & (~(useractivitymerged['Title'].str.startswith('badge')))\
-                    & (~(useractivitymerged['Title'].str.startswith('Signed Up')))\
-                    & (~(useractivitymerged['Title'].str.startswith('$create_alias')))\
-                    & (~(useractivitymerged['Title'].str.startswith('$identify')))\
+                    #& (~(useractivitymerged['Title'].str.startswith('Signed Up')))\
+                    #& (~(useractivitymerged['Title'].str.startswith('$create_alias')))\
+                    #& (~(useractivitymerged['Title'].str.startswith('$identify')))\
         
 #mask_activities = (useractivitymerged['Title'].value_counts() > 100)
 keys = (useractivitymerged['Title'][mask_activities]).unique()
@@ -116,8 +117,11 @@ discussionmergedfilteredtarget = users_train['User_ID'].map(discussionmergedfilt
 commentsmergedfilteredtarget = commentsmerged.loc[(commentsmerged['Created At Month_x'] == (commentsmerged['Created At Month_y']+1)%12)]
 commentsmergedfilteredtarget = users_train['User_ID'].map(commentsmergedfilteredtarget['User_ID'].value_counts() > 0).fillna(0).astype('int')
 
-target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (useractivitymergedfilteredtarget)
-users_train.loc[:,'target'] = target
+# target = (commentsmergedfilteredtarget) | (discussionmergedfilteredtarget) | (useractivitymergedfilteredtarget)
+target2 = (useractivitymergedfilteredtarget)
+# print(target.value_counts())
+# print(target2.value_counts())
+users_train.loc[:,'target'] = target2
 
 users_train.to_csv('data/datatrain.csv',index=False)
 users_test.to_csv('data/datatest.csv',index=False)

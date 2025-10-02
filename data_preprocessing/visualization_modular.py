@@ -6,6 +6,9 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.manifold import TSNE
 import numpy as np
+import os
+from IPython.display import display, Image
+
 
 
 def data_overview(df):
@@ -30,11 +33,11 @@ def correlation_and_feature_importance(df):
     """Show correlations and mutual information scores for numeric features."""
     num_df = df.select_dtypes(include="number")
     print("Correlation of numeric features with target:")
-    display(num_df.corr()['target'].sort_values())
+    # display(num_df.corr()['target'].sort_values())
     mi = mutual_info_classif(num_df.drop(columns="target"), num_df["target"], random_state=42)
     mi_scores = pd.Series(mi, index=num_df.drop(columns="target").columns, name="MI_Score").sort_values(ascending=False)
     print("Mutual information scores for numeric features:")
-    display(mi_scores)
+    # display(mi_scores)
     plt.figure(figsize=(10,8))
     sns.heatmap(num_df.corr(), annot=False, cmap="coolwarm")
     plt.title("Correlation matrix of numeric features")
@@ -127,3 +130,27 @@ def plot_feature_distributions(df, target_col="target"):
 
         plt.tight_layout()
         plt.show()
+
+
+
+def display_visualizations(folder_path="Visualization"):
+    """
+    Display every PNG in the given folder inside a Jupyter environment.
+
+    Args:
+        folder_path (str): Directory containing the exported charts.
+    """
+    if not os.path.isdir(folder_path):
+        raise FileNotFoundError(f"No directory found at '{folder_path}'.")
+
+    png_files = sorted(
+        f for f in os.listdir(folder_path)
+        if f.lower().endswith(".png")
+    )
+
+    if not png_files:
+        print(f"No PNG files found in '{folder_path}'.")
+        return
+
+    for filename in png_files:
+        display(Image(filename=os.path.join(folder_path, filename)))

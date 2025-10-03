@@ -33,11 +33,11 @@ def correlation_and_feature_importance(df):
     """Show correlations and mutual information scores for numeric features."""
     num_df = df.select_dtypes(include="number")
     print("Correlation of numeric features with target:")
-    # display(num_df.corr()['target'].sort_values())
+    display(num_df.corr()['target'].sort_values())
     mi = mutual_info_classif(num_df.drop(columns="target"), num_df["target"], random_state=42)
     mi_scores = pd.Series(mi, index=num_df.drop(columns="target").columns, name="MI_Score").sort_values(ascending=False)
     print("Mutual information scores for numeric features:")
-    # display(mi_scores)
+    display(mi_scores)
     plt.figure(figsize=(10,8))
     sns.heatmap(num_df.corr(), annot=False, cmap="coolwarm")
     plt.title("Correlation matrix of numeric features")
